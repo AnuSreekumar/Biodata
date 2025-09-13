@@ -65,5 +65,64 @@ class Biodata extends CI_Controller {
         echo "Delete failed!";
     	}
 	}
-}
 
+	public function download_sample()
+	{
+    $filename = "sample_biodata.csv";
+
+    // Sample data
+    $data = "id,name,address\n";
+    $data .= "1,John Doe,New York\n";
+    $data .= "2,Jane Smith,California\n";
+
+    // Force download
+    header("Content-Description: File Transfer");
+    header("Content-Disposition: attachment; filename=$filename");
+    header("Content-Type: application/csv; ");
+
+    echo $data;
+    exit;
+	}
+
+
+// 	
+
+public function import_excel()
+{
+    if (!empty($_FILES['excel_file']['name'])) {
+        $file = $_FILES['excel_file']['tmp_name'];
+        $newPath = FCPATH . 'uploads/' . $_FILES['excel_file']['name'];
+
+        if (!move_uploaded_file($file, $newPath)) {
+            $this->session->set_flashdata('error', 'File upload failed!');
+            redirect('biodata');
+        }
+
+        if (($handle = fopen($newPath, "r")) !== FALSE) {
+            $row = 0;
+            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                if ($row == 0) { $row++; continue; } // skip header
+
+                $name    = trim($data[0]); // remove extra spaces
+            $address = trim($data[1]);
+
+            if (!empty($name) && !empty($address)) {
+                $insert = [
+                    'name' => $name,
+                    'address' => $address
+                ];
+                $this->db->insert('biodata_table', $insert);
+            }
+            $row++;
+            }
+            fclose($handle);
+        }
+
+        $this->session->set_flashdata('success', 'CSV data uploaded successfully!');
+        redirect('biodata/add');
+    } else {
+        $this->session->set_flashdata('error', 'Please select a file.');
+        redirect('biodata/add');
+    }
+}
+}
